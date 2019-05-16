@@ -115,6 +115,15 @@
         $(".board").append($div);
       }
 
+      document.getElementById("ge-sol").style.visability = "hidden";
+      document.getElementById("gs-sol").style.visability = "hidden";
+      document.getElementById("ng-sol").style.visability = "hidden";
+
+      document.getElementById("ge-sol").innerHTML = "";
+      document.getElementById("gs-sol").innerHTML = "";
+      document.getElementById("ng-sol").innerHTML = "";
+
+
     });
     
     $(".board").on("click", "span", function() {
@@ -222,7 +231,7 @@
       var localRows = rows;
       var localCol = cols;
       var localSize= localCol*localRows;
-      var i=0
+      var i=0;
 
       //create array for all possible combinations
       var A = new Array(localSize);
@@ -437,13 +446,13 @@
       var localRows = rows;
       var localCol = cols;
       var localSize= localCol*localRows;
-      var i=0
+      var i=0;
       var A; //Matrix multiplication A*B=C
       var startTime, endTime;
 
 
 
-      startTime = performance.now();
+      
       if(localRows==1 || localCol==1){
         A = getSingleIndexMatrix();
       }else{
@@ -455,7 +464,7 @@
       for (i = 0; i < RM.length; i++) {
         RM[i] = new Array(localSize+1);
       }
-
+      startTime = performance.now();
       for(i=0;i<localSize;i++){
         for(var j=0;j<localSize;j++){
           RM[i][j]=A[i][j];
@@ -468,6 +477,7 @@
 
       //Run reduction on Array 
       var reducedTable = rref(RM);
+      endTime = performance.now();
 
       //create solution array
       var solution = new Array(localRows);
@@ -481,7 +491,6 @@
           solution[i][j]=0;
         }
       }
-      endTime = performance.now();
 
       
       for(i=0;i<localSize;i++){
@@ -531,8 +540,8 @@
       var localRows = rows;
       var localCol = cols;
       var localSize= localCol*localRows;
-      var i=0
-      var A; //Matrix multiplication A*B=C
+      var i=0;
+      var A; //Matrix 
       var startTime, endTime;
 
 
@@ -611,22 +620,360 @@
 
       var timeTake=(endTime-startTime);
 
-       matrixString+="\n\n Completed in: "+ timeTake + "milliseconds\n\r";
+       matrixString+="\n\n Completed in: "+ timeTake + "  milliseconds\n\r";
       
       //Set the HTML to show problem
       document.getElementById("ng-sol").style.padding= "20px";
       document.getElementById("ng-sol").style.whiteSpace = "pre-wrap";
       document.getElementById("ng-sol").style.visability = "visible";
-      document.getElementById("ng-sol").innerHTML = matrixString;
+      //document.getElementById("ng-sol").innerHTML = matrixString;
     });
+
+
+    //Global Variable to be used by all array to get the combinations
+    var globalArr = [];
+
+    function additionalCombHelper(arr, data, start, end, index, size){
+      if(index == size){
+        var a=[]
+        for(var j=0;j<size;j++){
+          a.push(data[j]);
+        }
+        
+        globalArr.push(a);
+        return;
+      }
+      for(var i=start; i<=end && end-i+1 >= size-index; i++){
+        data[index] = arr[i];
+        additionalCombHelper(arr, data, i+1, end, index+1, size);
+      }
+    }
+
+    function cobinationsHelper(arr, start, end, size, globalArr){
+      var data = [];
+      
+      additionalCombHelper(arr, data, start, end, 0, size);
+      
+    }
+
+    function getAllPossibleCombinations(A){
+      var i;
+      var globalArr =[];
+
+      for(i=0;i<A.length;i++){
+        cobinationsHelper(A, 0, (A.length-1), (i+1));
+      }
+    }
 
      //Will use the guessing method to solve the puzzle
     $("#solve-guess-button").on("click", function() {
-      console.log("Guessing solution");
+      //sets limit on big the matrix can be
       if(rows > 20 || cols >20){
         alert("Guessing doesn't work with anything greater than 20 x 20");
         return;
       }
+
+      var localRows = rows;
+      var localCol = cols;
+      var i,j, k, sum;
+      var testingArray; //Matrix 
+      var startTime, endTime;
+      var solutionFound = false;
+      var vertical;
+
+      startTime = performance.now();
+
+      //create array to match grid
+      testingArray = new Array(localRows);
+      for (i = 0; i < testingArray.length; i++) {
+        testingArray[i] = new Array(localCol);
+      }
+
+      //set graph to inital state
+      for(i=0;i<localRows;i++){
+        for(j=0;j<localCol;j++){
+          testingArray[i][j]=0;
+        }
+      }
+
+      //get all the possible guesses for the first row
+      var maxVal = Math.max(localCol,localRows);
+
+      var guesses=[];
+      for(i=0;i<maxVal;i++){
+        guesses[i]=i;
+      }
+
+      globalArr=[]
+      
+      getAllPossibleCombinations(guesses);
+      var combinations = globalArr;
+
+      //see if you should do it horizontally or virtally
+      vertical = (localRows >= localCol)? true:false;
+      
+      //variables used to store the solution and the Array we run our simulation on;
+      var solutionsArray;
+
+
+      //decides to run the algorithm either vertiaclly or horizontally
+      if(vertical) {
+        
+        for(i=0; i<combinations.length;i++){
+          
+          //set graph to inital state
+          for(l=0;l<localRows;l++){
+            for(j=0;j<localCol;j++){
+              testingArray[l][j]=0;
+            }
+          }
+
+          //reset solutions array
+          solutionsArray = [];
+          
+          //set the first row
+          for(j=0; j<combinations[i].length; j++) {
+            var rowIndex = combinations[i][j]; 
+            solutionsArray.push([rowIndex,0]);
+            
+            //sets the index its self
+            testingArray[rowIndex][0] += 1;
+            testingArray[rowIndex][0] = testingArray[rowIndex][0]%2;
+            
+            //Turn on above point
+            if(rowIndex-1> -1){
+              var abovePoint = rowIndex - 1;
+              testingArray[abovePoint][0] += 1;
+              testingArray[abovePoint][0] = testingArray[abovePoint][0]%2;
+            }
+
+             //Turn on below point
+            if(rowIndex+1<localRows){
+              var belowPoint = rowIndex + 1;
+              testingArray[belowPoint][0] += 1;
+              testingArray[belowPoint][0] = testingArray[belowPoint][0]%2;
+            }
+
+            //Turn on Point to the right 
+            if(1<localCol){
+              testingArray[rowIndex][1] += 1;
+              testingArray[rowIndex][1] = testingArray[rowIndex][1]%2;
+            }
+          }
+
+          //run the algorithm
+          for(k=1; k<localCol; k++){
+            for(j=0; j<localRows; j++){
+              var before = (k-1);
+              if(testingArray[j][before] == 0){
+                //add button to solution array
+                solutionsArray.push([j,k]);
+
+                //sets the index its self
+                testingArray[j][k] += 1;
+                testingArray[j][k] = testingArray[j][k]%2;
+
+                //set point to the left
+                testingArray[j][k-1] += 1;
+                testingArray[j][k-1] = testingArray[j][k-1]%2;
+                
+                //Turn on above point
+                if((j-1)>=0){
+                  testingArray[j-1][k] += 1;
+                  testingArray[j-1][k] = testingArray[j-1][k]%2;
+                }
+
+                //Turn on below point
+                if((j+1)<localRows){
+                  testingArray[j+1][k] += 1;
+                  testingArray[j+1][k] = testingArray[j+1][k]%2;
+                }
+
+                //Turn on Point to the right 
+                if((k+1)<localCol){
+                  testingArray[j][k+1] += 1;
+                  testingArray[j][k+1] = testingArray[j][k+1]%2;
+                }
+
+              }
+
+            }
+          }
+          
+
+          sum = 0;
+
+          for(j=0;j<localRows;j++){
+            sum+=testingArray[j][localCol-1];
+          }
+          
+
+          if(sum == localRows){
+            solutionFound = true;
+          }
+
+          if(solutionFound){
+            break;
+          }
+        }
+
+      }else{ //were going to run the aglorithm top down
+
+        for(i=0; i<combinations.length;i++){
+          
+          //set graph to inital state
+          for(l=0;l<localRows;l++){
+            for(j=0;j<localCol;j++){
+              testingArray[l][j]=0;
+            }
+          }
+          //reset solutions array
+          solutionsArray = [];
+          
+          //set the first row
+          for(j=0; j<combinations[i].length; j++) {
+            var colIndex = combinations[i][j]; 
+            solutionsArray.push([0,colIndex]);
+            
+            //sets the index its self
+            testingArray[0][colIndex] += 1;
+            testingArray[0][colIndex] = testingArray[0][colIndex]%2;
+            
+            //Turn on point to the left
+            if(colIndex-1> -1){
+              var leftPoint = colIndex - 1;
+              testingArray[0][leftPoint] += 1;
+              testingArray[0][leftPoint] = testingArray[0][leftPoint]%2;
+            }
+
+             //Turn on below point
+            if(1<localRows){
+              testingArray[1][colIndex] += 1;
+              testingArray[1][colIndex] = testingArray[1][colIndex]%2;
+            }
+
+            //Turn on Point to the right 
+            if(colIndex+1<localCol){
+              var rightIndex = colIndex + 1;
+              testingArray[0][rightIndex] += 1;
+              testingArray[0][rightIndex] = testingArray[0][rightIndex]%2;
+            }
+          }
+
+          //run the algorithm
+          for(j=1; j<localRows; j++){
+            for(k=0; k<localCol; k++){
+              var above = (j-1);
+              if(testingArray[above][k] == 0){
+                //add button to solution array
+                solutionsArray.push([j,k]);
+
+                //sets the index its self
+                testingArray[j][k] += 1;
+                testingArray[j][k] = testingArray[j][k]%2;
+
+                //set point above on
+                testingArray[j-1][k] += 1;
+                testingArray[j-1][k] = testingArray[j-1][k]%2;
+
+                //Turn on point to the left 
+                if((k-1)>=0){
+                  testingArray[j][k-1] += 1;
+                  testingArray[j][k-1] = testingArray[j][k-1]%2;
+                }
+
+                //Turn on below point
+                if((j+1)<localRows){
+                  testingArray[j+1][k] += 1;
+                  testingArray[j+1][k] = testingArray[j+1][k]%2;
+                }
+
+                //Turn on Point to the right 
+                if((k+1)<localCol){
+                  testingArray[j][k+1] += 1;
+                  testingArray[j][k+1] = testingArray[j][k+1]%2;
+                }
+
+              }
+
+            }
+          }
+          
+
+          sum = 0;
+
+          for(j=0;j<localCol;j++){
+            sum+=testingArray[localRows-1][j];
+          }
+          
+
+          if(sum === localCol){
+            solutionFound = true;
+          }
+
+          if(solutionFound){
+            break;
+          }
+        }
+
+      }
+      endTime = performance.now();
+
+
+      if(!solutionFound){
+        alert("No solution was found using this method");
+        return;
+      }
+
+      //set graph to inital state
+      for(l=0;l<localRows;l++){
+        for(j=0;j<localCol;j++){
+          testingArray[l][j]=0;
+        }
+      }
+
+      for(l=0; l<solutionsArray.length; l++){
+        var r= solutionsArray[l][0];
+        var c= solutionsArray[l][1];
+        testingArray[r][c]=1;
+      }
+
+
+      //print out the matrix to make sure it looks correct
+      var matrixString="\nSolution by Guessing(Chasing the lights): \n";
+      //fill array with solution
+      var first = true;
+
+      for (i = 0; i < testingArray.length; i++) {
+        for(j =0; j < testingArray[i].length; j++){
+          if(testingArray[i][j]==1){
+            if(first){
+              matrixString += '(';
+              first=false;
+            }else{
+              matrixString += ', (';
+            }
+            matrixString += i+','+j+")";
+          }
+        }
+        first = true;
+        matrixString+='\n';
+      }
+
+     
+
+      var timeTake=(endTime-startTime);
+
+       matrixString+="\n\n Completed in: "+ timeTake + " milliseconds\n\r";
+      
+      //Set the HTML to show problem
+      document.getElementById("gs-sol").style.padding= "20px";
+      document.getElementById("gs-sol").style.whiteSpace = "pre-wrap";
+      document.getElementById("gs-sol").style.visability = "visible";
+      document.getElementById("gs-sol").innerHTML = matrixString;
+       
+
+      
     });
   
   </script>
