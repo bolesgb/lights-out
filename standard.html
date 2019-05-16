@@ -441,7 +441,14 @@
     };
 
 
-    //Will use Gaussian Elimination to solve the puzzle
+    //////////////////////////////////////////////////////////
+    //                                                      //
+    //                                                      //
+    //  Will use Gaussian Elimination to solve the puzzle   //
+    //                                                      //
+    //                                                      //
+    //////////////////////////////////////////////////////////
+    
     $("#solve-elemination-button").on("click", function() {
       var localRows = rows;
       var localCol = cols;
@@ -451,8 +458,6 @@
       var startTime, endTime;
 
 
-
-      
       if(localRows==1 || localCol==1){
         A = getSingleIndexMatrix();
       }else{
@@ -521,9 +526,7 @@
         first = true;
         matrixString+='\n';
       }
-
-     
-
+      
       var timeTake=(endTime-startTime);
 
        matrixString+="\n\n Completed in: "+ timeTake + "milliseconds\n\r";
@@ -535,7 +538,19 @@
       document.getElementById("ge-sol").innerHTML = matrixString;
     });
 
-    //Will see if there is a null grid solution that exists
+
+    //sum function used to add rows easier
+    function add(accumulator, a) {
+      return accumulator + a;
+    }
+
+    //////////////////////////////////////////////////////////
+    //                                                      //
+    //                                                      //
+    //Will see if there is a null grid solution that exists //
+    //                                                      //
+    //                                                      //
+    //////////////////////////////////////////////////////////
     $("#null-grid-button").on("click", function() {
       var localRows = rows;
       var localCol = cols;
@@ -572,6 +587,8 @@
       //Run reduction on Array 
       var reducedTable = rref(RM);
 
+      console.log(reducedTable);
+
       //create solution array
       var solution = new Array(localRows);
       for (i = 0; i < solution.length; i++) {
@@ -586,17 +603,41 @@
       }
       endTime = performance.now();
 
-      
+      var sum=0;
       for(i=0;i<localSize;i++){
-        if(reducedTable[i][localSize]===1){
-          var r = Math.floor(i/localCol);
-          var c = i%localCol;
-          solution[r][c]=1;
+        sum = reducedTable[i].reduce(add,0); 
+        if((sum%2) == 0){
+          for(var j=0;j<localSize;j++){
+            if(reducedTable[i][j]==1){
+              var r = Math.floor(j/localCol);
+              var c = j%localCol;
+              solution[r][c]=1;
+            }
+          }
         }
       }
 
+      for (i = 0; i < solution.length; i++) {
+        for(var j=0;j<solution[i].length;j++){
+          solution[i][j]=solution[i][j]%2;
+        }
+      }
+
+      sum=0;
+      for (i = 0; i < solution.length; i++) {
+        for(var j=0;j<solution[i].length;j++){
+          sum += solution[i][j];
+        }
+      }
+
+      //checks if we have a null grid
+      if(sum==0){  
+        alert("No Nontrivial NULL Grid Solution was found!");
+        return;
+      }
+
       //print out the matrix to make sure it looks correct
-      var matrixString="\nSolution by Gaussian Elimination is: \n";
+      var matrixString="\nSolution by Gaussian Elimination for Nontrivial Null Grid is: \n";
       //fill array with solution
       var first = true;
 
@@ -626,7 +667,7 @@
       document.getElementById("ng-sol").style.padding= "20px";
       document.getElementById("ng-sol").style.whiteSpace = "pre-wrap";
       document.getElementById("ng-sol").style.visability = "visible";
-      //document.getElementById("ng-sol").innerHTML = matrixString;
+      document.getElementById("ng-sol").innerHTML = matrixString;
     });
 
 
@@ -664,8 +705,17 @@
         cobinationsHelper(A, 0, (A.length-1), (i+1));
       }
     }
+    
+    
+    //////////////////////////////////////////////////////////
+    //                                                      //
+    //                                                      //
+    //  Will use the guessing method to solve the puzzle    //
+    //                                                      //
+    //                                                      //
+    //////////////////////////////////////////////////////////
 
-     //Will use the guessing method to solve the puzzle
+     
     $("#solve-guess-button").on("click", function() {
       //sets limit on big the matrix can be
       if(rows > 20 || cols >20){
